@@ -37,5 +37,5 @@ install.sh      # ~/.zshrc에 로더 블록 추가 + 스킬 심링크 (멱등)
   `aitask <repo> <task>` / `aitask done <repo> <task>` / `aitask ls` / `aitask root add <path>`.
   자세한 사용법은 `aitask help`.
 - **fe-dev** (skill) — 백엔드 개발자용 FE 작업 워크플로.
-  레포 스타일 파악(`.claude/fe-style.md` 영속화) → superpowers 위임 작업 →
-  playwright/curl 증거 기반 검증 루프. Claude Code에서 FE 레포 작업 시 자동 트리거.
+  레포 스타일 파악(`.claude/fe-style.md` 영속화) → superpowers 위임 작업(부재 시
+  내장 fallback) → playwright/curl 증거 기반 검증 루프. FE 레포 작업 시 자동 트리거.

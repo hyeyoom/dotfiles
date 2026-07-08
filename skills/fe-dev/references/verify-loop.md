@@ -34,7 +34,8 @@ fe-style.md에 lint/typecheck 명령이 "없음"이면 그 레벨은 건너뛰�
 
 ## 루프 규칙
 
-- 어느 레벨이든 실패 → superpowers:systematic-debugging으로 원인 규명 → 수정 →
+- 어느 레벨이든 실패 → superpowers:systematic-debugging으로 원인 규명
+  (superpowers가 없으면 SKILL.md의 standalone fallback 버그 절차) → 수정 →
   **레벨 1부터 재실행** (수정이 앞 레벨을 깨뜨렸을 가능성 배제).
 - 같은 레벨이 같은 원인으로 3회 실패하면 루프를 멈추고, 시도한 것·실패 증거·
   가설을 정리해 사용자에게 보고한다.
