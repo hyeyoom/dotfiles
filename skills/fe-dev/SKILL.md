@@ -1,6 +1,6 @@
 ---
 name: fe-dev
-description: Use when asked to add features, fix bugs, or refactor in a frontend repository (React/Vue/Next/Svelte/etc.) and the user has a backend background — establishes repo conventions first, explains plans in backend terms, delegates process to superpowers skills, and requires an evidence-based verification loop (static checks, tests, build, real browser via Playwright) before declaring completion
+description: Use when asked to add features, fix bugs, or refactor in a frontend repository (React/Vue/Next/Svelte/etc.), especially when the user has a backend background or is unfamiliar with frontend conventions, styling, state management, or browser testing
 ---
 
 # fe-dev — FE 작업 워크플로 (백엔드 개발자용)
