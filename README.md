@@ -11,14 +11,21 @@ scripts/
 install.sh      # ~/.zshrc에 로더 블록을 멱등하게 추가
 ```
 
-## 설치
+각 툴의 문서는 같은 디렉터리에 같은 basename의 `.md`로 둔다 (예: `zsh/aitask.zsh` ↔ `zsh/aitask.md`).
+
+## 설치 / 제거
 
 ```sh
-./install.sh
+./install.sh              # ~/.zshrc에 로더 블록 추가 (멱등)
+./uninstall.sh            # 로더 블록 제거 (백업: ~/.zshrc.bak, 레포 파일은 유지)
+
+./uninstall.sh aitask     # 특정 툴만 비활성화 (*.zsh → *.zsh.disabled rename)
+./install.sh aitask       # 다시 활성화
 ```
 
 `~/.zshrc`에 `# >>> dotfiles >>>` 블록이 추가되어 `scripts/zsh/*.zsh`를 전부 source하고
 `scripts/bin`을 PATH에 넣는다. 이미 설치돼 있으면 아무것도 하지 않는다.
+새 툴은 파일만 추가하면 다음 셸부터 자동 로드된다 (재설치 불필요).
 
 ## 툴
 

@@ -196,7 +196,20 @@ aitask() {
     ls|list)    _aitask_ls ;;
     root|roots) shift; _aitask_root "$@" ;;
     help|-h|--help|"")
-      sed -n '2,13p' "${(%):-%x}" | sed 's/^# \{0,1\}//' ;;
+      cat <<'EOF'
+usage:
+  aitask <repo> <task>          # = aitask new <repo> <task>
+  aitask new  <repo> <task>     # worktree + cmux tab + claude + git pane
+  aitask done <repo> <task>     # merge into base, remove worktree/branch, close tab
+  aitask drop <repo> <task>     # discard without merging
+  aitask ls                     # list active tasks across all roots
+  aitask root add <path>        # register a repo root
+  aitask root ls                # list roots
+
+repo: bare name is searched under every root; a path containing "/" is
+used as-is. Ambiguous names across roots are reported as an error.
+EOF
+      ;;
     *)          _aitask_new "$@" ;;   # aitask <repo> <task>
   esac
 }
