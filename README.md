@@ -27,6 +27,7 @@ bootstrap/
   50-configs.sh # p10k/gitconfig 심링크, secrets 복호화 or ~/.*.local 템플릿 생성
   check.sh      # --check 구현
   seal.sh       # --seal 구현 (시크릿 GPG 암호화)
+  reveal.sh     # --reveal 구현 (복호화해 콘솔 출력, 검증용)
 Brewfile        # CLI 툴 선언 (bat, fzf, gh, jenv, neovim, ...)
 config/         # 심링크되는 공용 설정 (p10k, gitconfig, claude) + *.local.example
 secrets/        # GPG 암호화된 ~/.*.local (내 GPG 개인키로만 복호화 가능)
