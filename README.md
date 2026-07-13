@@ -11,7 +11,9 @@ cd ~/github/dotfiles
 ./colonize.sh --check     # 설치 없이 항목별 상태 점검 + 레포 시크릿 스캔
 ```
 
-설치 후 `~/.zshrc.local`(API 키·SSH alias)과 `~/.gitconfig.local`(git 신원)을 채운다.
+시크릿(`~/.zshrc.local`, `~/.gitconfig.local`)은 GPG 개인키를 먼저 import해 두면
+colonize가 `secrets/*.asc`에서 자동 복호화한다. 키가 없으면 빈 템플릿이 생기니
+직접 채우면 된다. 시크릿을 수정했으면 `./colonize.sh --seal`로 다시 암호화해 커밋.
 
 ## 구조
 
@@ -22,10 +24,12 @@ bootstrap/
   20-zsh.sh     # oh-my-zsh + powerlevel10k + 플러그인
   30-runtimes.sh # nvm, rustup, LazyVim(nvim 설정) (jenv는 Brewfile)
   40-claude.sh  # claude CLI + settings.json 심링크
-  50-configs.sh # p10k/gitconfig 심링크, ~/.*.local 템플릿 생성
+  50-configs.sh # p10k/gitconfig 심링크, secrets 복호화 or ~/.*.local 템플릿 생성
   check.sh      # --check 구현
+  seal.sh       # --seal 구현 (시크릿 GPG 암호화)
 Brewfile        # CLI 툴 선언 (bat, fzf, gh, jenv, neovim, ...)
 config/         # 심링크되는 공용 설정 (p10k, gitconfig, claude) + *.local.example
+secrets/        # GPG 암호화된 ~/.*.local (내 GPG 개인키로만 복호화 가능)
 scripts/
   zsh/          # zshrc가 source하는 조각들 (*.zsh 전부 자동 로드, 알파벳순)
   bin/          # PATH에 얹는 단독 실행 스크립트
@@ -37,9 +41,11 @@ install.sh      # ~/.zshrc에 로더 블록 추가 + 스킬 심링크 (멱등)
 
 ## 시크릿 정책
 
-API 키, 토큰, SSH 접속 정보, git 신원 등 개인정보는 레포에 절대 넣지 않는다.
+API 키, 토큰, SSH 접속 정보, git 신원 등 개인정보는 레포에 평문으로 절대 넣지 않는다.
 홈 디렉터리의 `~/.zshrc.local`, `~/.gitconfig.local`에만 두며(로더/include가 자동 로드),
 `.gitignore`가 `*.local`을 막고 `colonize.sh --check`가 추적 파일에서 키 패턴을 스캔한다.
+레포에는 GPG 공개키로 암호화한 사본(`secrets/*.asc`)만 올린다 — 새 머신 이동은
+GPG 개인키 하나만 옮기면 끝난다 (`--seal`로 갱신, colonize가 자동 복호화).
 
 ## 설치 / 제거
 

@@ -1,6 +1,7 @@
 #!/bin/sh
 # colonize.sh          — 새 macOS 머신에 전체 환경 설치 (멱등)
 # colonize.sh --check  — 설치 없이 상태 점검 + 레포 시크릿 스캔
+# colonize.sh --seal   — ~/.*.local 시크릿을 GPG로 암호화해 secrets/에 보관
 set -eu
 
 DOTFILES="$(cd "$(dirname "$0")" && pwd)"
@@ -10,6 +11,10 @@ export DOTFILES
 
 if [ "${1:-}" = "--check" ]; then
   exec sh "$DOTFILES/bootstrap/check.sh"
+fi
+
+if [ "${1:-}" = "--seal" ]; then
+  exec sh "$DOTFILES/bootstrap/seal.sh"
 fi
 
 for step in "$DOTFILES"/bootstrap/[0-9]*.sh; do

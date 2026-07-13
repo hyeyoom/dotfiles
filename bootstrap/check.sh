@@ -32,6 +32,19 @@ chk "~/.claude/settings.json -> repo" "[ -L \"\$HOME/.claude/settings.json\" ]"
 chk "~/.zshrc.local"                  "[ -f \"\$HOME/.zshrc.local\" ]"
 chk "~/.gitconfig.local"              "[ -f \"\$HOME/.gitconfig.local\" ]"
 
+echo "sealed secrets:"
+for name in zshrc.local gitconfig.local; do
+  sealed="$DOTFILES/secrets/$name.asc"
+  plain="$HOME/.$name"
+  if [ ! -f "$sealed" ]; then
+    echo "  x $name not sealed (run ./colonize.sh --seal)"; fail=1
+  elif [ -f "$plain" ] && [ "$plain" -nt "$sealed" ]; then
+    echo "  x $name sealed copy is stale (run ./colonize.sh --seal)"; fail=1
+  else
+    echo "  o $name sealed"
+  fi
+done
+
 echo "secret scan (tracked files):"
 leaks="$(cd "$DOTFILES" && git ls-files -z | xargs -0 grep -lIE \
   '(ghp|gho|ntn)_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9-]{20,}|xox[bap]-[A-Za-z0-9-]{10,}|BEGIN [A-Z ]*PRIVATE KEY' \
