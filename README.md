@@ -20,7 +20,7 @@ colonize.sh     # 진입점: bootstrap/*.sh 순서 실행 후 install.sh 호출
 bootstrap/
   10-brew.sh    # Homebrew + Brewfile 패키지
   20-zsh.sh     # oh-my-zsh + powerlevel10k + 플러그인
-  30-runtimes.sh # nvm, rustup (jenv는 Brewfile)
+  30-runtimes.sh # nvm, rustup, LazyVim(nvim 설정) (jenv는 Brewfile)
   40-claude.sh  # claude CLI + settings.json 심링크
   50-configs.sh # p10k/gitconfig 심링크, ~/.*.local 템플릿 생성
   check.sh      # --check 구현

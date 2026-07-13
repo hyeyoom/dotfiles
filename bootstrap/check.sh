@@ -21,8 +21,9 @@ chk "zsh-completions"         "[ -d \"\$HOME/.oh-my-zsh/custom/plugins/zsh-compl
 chk "zshrc loader block"      "grep -qF '# >>> dotfiles >>>' \"\$HOME/.zshrc\""
 
 echo "runtimes:"
-chk "nvm"   "[ -s \"\$HOME/.nvm/nvm.sh\" ]"
-chk "cargo" "[ -f \"\$HOME/.cargo/env\" ]"
+chk "nvm"         "[ -s \"\$HOME/.nvm/nvm.sh\" ]"
+chk "cargo"       "[ -f \"\$HOME/.cargo/env\" ]"
+chk "nvim config" "[ -f \"\$HOME/.config/nvim/init.lua\" ]"
 
 echo "links & local files:"
 chk "~/.p10k.zsh -> repo"             "[ -L \"\$HOME/.p10k.zsh\" ]"

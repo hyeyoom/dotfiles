@@ -4,4 +4,6 @@ set -eu
 [ -d "$HOME/.nvm" ] || git clone --depth=1 https://github.com/nvm-sh/nvm.git "$HOME/.nvm"
 [ -d "$HOME/.cargo" ] || \
   curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs | sh -s -- -y --no-modify-path
+[ -d "$HOME/.config/nvim" ] || \
+  git clone --depth=1 https://github.com/LazyVim/starter "$HOME/.config/nvim"
 echo "runtimes: ok"
