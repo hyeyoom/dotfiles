@@ -1,18 +1,45 @@
 # dotfiles
 
-개인 커스텀 툴/셸 설정 저장소.
+개인 커스텀 툴/셸 설정 저장소. 새 macOS 머신에서 한 번에 전체 환경을 재현한다.
+
+## 새 머신 셋업
+
+```sh
+git clone https://github.com/hyeyoom/dotfiles.git ~/github/dotfiles
+cd ~/github/dotfiles
+./colonize.sh             # brew + zsh 환경 + 런타임 + claude + 설정 전부 설치 (멱등)
+./colonize.sh --check     # 설치 없이 항목별 상태 점검 + 레포 시크릿 스캔
+```
+
+설치 후 `~/.zshrc.local`(API 키·SSH alias)과 `~/.gitconfig.local`(git 신원)을 채운다.
 
 ## 구조
 
 ```
+colonize.sh     # 진입점: bootstrap/*.sh 순서 실행 후 install.sh 호출
+bootstrap/
+  10-brew.sh    # Homebrew + Brewfile 패키지
+  20-zsh.sh     # oh-my-zsh + powerlevel10k + 플러그인
+  30-runtimes.sh # nvm, rustup (jenv는 Brewfile)
+  40-claude.sh  # claude CLI + settings.json 심링크
+  50-configs.sh # p10k/gitconfig 심링크, ~/.*.local 템플릿 생성
+  check.sh      # --check 구현
+Brewfile        # CLI 툴 선언 (bat, fzf, gh, jenv, neovim, ...)
+config/         # 심링크되는 공용 설정 (p10k, gitconfig, claude) + *.local.example
 scripts/
-  zsh/          # zshrc가 source하는 함수들 (*.zsh 전부 자동 로드)
+  zsh/          # zshrc가 source하는 조각들 (*.zsh 전부 자동 로드, 알파벳순)
   bin/          # PATH에 얹는 단독 실행 스크립트
 skills/         # Claude Code 스킬 (~/.claude/skills로 심링크 설치)
 install.sh      # ~/.zshrc에 로더 블록 추가 + 스킬 심링크 (멱등)
 ```
 
 각 툴의 문서는 같은 디렉터리에 같은 basename의 `.md`로 둔다 (예: `zsh/aitask.zsh` ↔ `zsh/aitask.md`).
+
+## 시크릿 정책
+
+API 키, 토큰, SSH 접속 정보, git 신원 등 개인정보는 레포에 절대 넣지 않는다.
+홈 디렉터리의 `~/.zshrc.local`, `~/.gitconfig.local`에만 두며(로더/include가 자동 로드),
+`.gitignore`가 `*.local`을 막고 `colonize.sh --check`가 추적 파일에서 키 패턴을 스캔한다.
 
 ## 설치 / 제거
 
