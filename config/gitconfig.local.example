@@ -1,0 +1,7 @@
+# ~/.gitconfig.local — 개인 식별 정보 (레포에 커밋 금지)
+[user]
+	name =
+	email =
+	# signingkey = <GPG key id>
+# [commit]
+# 	gpgsign = true
