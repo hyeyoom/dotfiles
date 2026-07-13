@@ -53,6 +53,7 @@ $MARKER
 export DOTFILES="$DOTFILES"
 for f in "\$DOTFILES"/scripts/zsh/*.zsh(N); do source "\$f"; done
 export PATH="\$DOTFILES/scripts/bin:\$PATH"
+[ -f "\$HOME/.zshrc.local" ] && source "\$HOME/.zshrc.local"
 # <<< dotfiles <<<
 EOF
 
