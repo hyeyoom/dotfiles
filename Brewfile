@@ -1,0 +1,8 @@
+brew "bat"
+brew "fzf"
+brew "gh"
+brew "git"
+brew "gnupg"
+brew "jenv"
+brew "neovim"
+brew "terminal-notifier"
