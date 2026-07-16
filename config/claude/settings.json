@@ -12,40 +12,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "terminal-notifier -title 'Claude Code' -message '작업 완료!' -sound default"
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "terminal-notifier -title 'Claude Code' -message '사용자 확인 대기 중...' -sound Ping"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "terminal-notifier -title 'Claude Hook' -message '도구 실행을 시작합니다...' -group 'claude-tool'"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "terminal-notifier -title 'Claude Hook' -message '도구 실행이 끝났습니다.' -group 'claude-tool'"
+            "command": "/Users/hyeyoom/github/dotfiles/scripts/bin/claude-cmux-notify"
           }
         ]
       }
