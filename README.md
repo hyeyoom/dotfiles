@@ -74,6 +74,3 @@ GPG 개인키 하나만 옮기면 끝난다 (`--seal`로 갱신, colonize가 자
 - **claude-cmux-notify** — Claude Code 턴 종료 시 macOS 알림, 클릭하면 해당
   cmux 워크스페이스로 점프. `claude-cmux-notify install`로 훅 등록.
   자세한 내용은 `scripts/bin/claude-cmux-notify.md`.
-- **fe-dev** (skill) — 백엔드 개발자용 FE 작업 워크플로.
-  레포 스타일 파악(`.claude/fe-style.md` 영속화) → superpowers 위임 작업(부재 시
-  내장 fallback) → playwright/curl 증거 기반 검증 루프. FE 레포 작업 시 자동 트리거.
