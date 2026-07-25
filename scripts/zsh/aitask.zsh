@@ -69,6 +69,7 @@ _aitask_base() {
 _aitask_new() {
   local repo=$1 task=$2
   [[ -n $repo && -n $task ]] || { print -u2 "usage: aitask new <repo> <task>"; return 1; }
+  _aitask_valid_task "$task" || return 1
 
   local base; base=$(_aitask_base "$repo") || return 1
   local name=${base:t}
@@ -85,8 +86,8 @@ _aitask_new() {
     git -C "$base" worktree add "$wt" -b "$branch" "$start" || return 1
   fi
 
-  # task scope — auto-loaded by Claude Code every turn
-  cat > "$wt/CLAUDE.local.md" <<EOF
+  # task scope — auto-loaded by Claude Code every turn (keep user edits on re-run)
+  [[ -f $wt/CLAUDE.local.md ]] || cat > "$wt/CLAUDE.local.md" <<EOF
 이 worktree는 $branch 전용이다.
 
 범위:
@@ -102,6 +103,11 @@ EOF
 
   # cmux: left = agent, right = git status
   local out ws sf
+  if ws=$(_aitask_find_ws "$name/$task"); then
+    CMUX_QUIET=1 cmux select-workspace --workspace "$ws" >/dev/null 2>&1
+    print -r -- "aitask: $name/$task already open (tab $ws) — focused"
+    return 0
+  fi
   out=$(CMUX_QUIET=1 cmux new-workspace --name "$name/$task" --cwd "$wt" \
         --command "$AITASK_AGENT_CMD") || return 1
   ws=${out##* }
