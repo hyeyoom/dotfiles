@@ -1,5 +1,6 @@
 # aitask — git worktree + cmux tab + claude launcher
 # usage:
+#   aitask                        # interactive fzf menu (jump / PR / drop / new)
 #   aitask <repo> <task>          # = aitask new <repo> <task>
 #   aitask new  <repo> <task>     # worktree + cmux tab + claude + git pane
 #   aitask done <repo> <task>     # merge into base, remove worktree/branch, close tab
@@ -293,6 +294,102 @@ _aitask_ls() {
   done
 }
 
+_aitask_pr() {  # $1 = worktree path; push -u then gh pr create --web
+  local wt=$1
+  (( $+commands[gh] )) || { print -u2 "aitask: gh가 필요합니다 (brew install gh)"; return 1 }
+  local branch; branch=$(git -C "$wt" branch --show-current 2>/dev/null)
+  [[ -n $branch ]] || { print -u2 "aitask: cannot determine branch in $wt"; return 1 }
+  if [[ -n $(git -C "$wt" status --porcelain 2>/dev/null) ]]; then
+    print -u2 "aitask: 커밋 안 된 변경이 있습니다. 커밋 후 다시 시도:"
+    git -C "$wt" status --short >&2
+    return 1
+  fi
+  local def; def=$(git -C "$wt" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
+  if [[ -n $def && $(git -C "$wt" rev-list --count "$def..HEAD" 2>/dev/null) == 0 ]]; then
+    print -u2 "aitask: $def 이후 커밋이 없습니다 — PR로 만들 변경이 없음"
+    return 1
+  fi
+  git -C "$wt" push -u origin "$branch" || return 1
+  (cd "$wt" && gh pr create --web)
+}
+
+_aitask_menu_new() {
+  local -a repos=()
+  local root g
+  while IFS= read -r root; do
+    root=${root/#\~/$HOME}
+    for g in "$root"/*/.git(N); do repos+=("${g:h}"); done
+  done < <(_aitask_roots)
+  (( $#repos )) || { print -u2 "aitask: no repos under roots"; return 1 }
+  local base
+  base=$(print -rl -- "$repos[@]" | fzf --header '레포 선택 (새 task)') || return 0
+  [[ -n $base ]] || return 0
+  local task
+  while true; do
+    print -n "task 이름 (영숫자 . _ -): "
+    read -r task || return 1
+    [[ -z $task ]] && return 1
+    _aitask_valid_task "$task" && break
+  done
+  _aitask_new "$base" "$task"
+}
+
+_aitask_menu() {
+  (( $+commands[fzf] )) || { print -u2 "aitask: 메뉴에는 fzf가 필요합니다 (brew install fzf)"; aitask help; return 1 }
+  local -a lines bases rows
+  lines=(${(f)"$(_aitask_status)"})
+  (( $#lines )) || { _aitask_menu_new; return $? }
+
+  local -A prmap
+  local line base br st url
+  for line in $lines; do
+    local f=("${(@ps:\t:)line}")
+    base=${${f[3]:h}%.wt}
+    (( ${bases[(Ie)$base]} )) || bases+=("$base")
+  done
+  for base in $bases; do
+    while IFS=$'\t' read -r br st url; do
+      prmap[$base@$br]=$st
+    done < <(_aitask_prlist "$base")
+  done
+
+  rows=($'__new__\t[+ new task]')
+  for line in $lines; do
+    local f=("${(@ps:\t:)line}")
+    base=${${f[3]:h}%.wt}
+    local pr=${prmap[$base@${f[4]}]:-}
+    rows+=("$f[3]"$'\t'"$(printf '%-30s %-24s %-16s %s' \
+      "$f[1]/$f[2]" "$f[4]" "$(_aitask_flags $f[5] $f[6] $f[7] $f[8] $f[9])" "${pr:+PR:${(L)pr}}")")
+  done
+
+  local sel
+  sel=$(print -rl -- "$rows[@]" | fzf --ansi --delimiter '\t' --with-nth '2..' \
+        --header 'task 선택 → 액션 / Esc 종료' \
+        --preview 'git -C {1} -c color.status=always status --short --branch 2>/dev/null && echo && git -C {1} log --oneline --color=always -8 2>/dev/null || echo "새 task를 생성합니다"' \
+        --preview-window 'right,55%') || return 0
+  local wt=${sel%%$'\t'*}
+  [[ $wt == __new__ ]] && { _aitask_menu_new; return $? }
+
+  local task=${wt:t}
+  base=${${wt:h}%.wt}
+  local name=${base:t}
+  local action
+  action=$(print -rl -- '탭으로 이동' 'PR 생성 (push + gh pr create --web)' 'drop — worktree/브랜치 폐기' '취소' \
+           | fzf --header "$name/$task") || return 0
+  case $action in
+    탭으로*)
+      local ws
+      if ws=$(_aitask_find_ws "$name/$task"); then
+        CMUX_QUIET=1 cmux select-workspace --workspace "$ws" >/dev/null 2>&1
+      else
+        _aitask_new "$base" "$task"   # worktree/scope 존재 → 탭만 재생성
+      fi ;;
+    PR*)   _aitask_pr "$wt" ;;
+    drop*) _aitask_drop "$base" "$task" ;;
+    *)     return 0 ;;
+  esac
+}
+
 _aitask_root() {
   case $1 in
     add)
@@ -323,9 +420,11 @@ aitask() {
     drop)       shift; _aitask_drop "$@" ;;
     ls|list)    _aitask_ls ;;
     root|roots) shift; _aitask_root "$@" ;;
-    help|-h|--help|"")
+    "")         _aitask_menu ;;
+    help|-h|--help)
       cat <<'EOF'
 usage:
+  aitask                        # 인터랙티브 메뉴 (fzf): 탭 이동 / PR 생성 / drop / 새 task
   aitask <repo> <task>          # = aitask new <repo> <task>
   aitask new  <repo> <task>     # worktree + cmux tab + claude + git pane
   aitask done <repo> <task>     # merge into base, remove worktree/branch, close tab
