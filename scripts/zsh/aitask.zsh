@@ -176,21 +176,85 @@ _aitask_drop() {
   print -r -- "aitask: dropped $name/$task"
 }
 
-_aitask_ls() {
-  local root wtroot wt name task branch dirty
+# one tab-separated line per worktree:
+# repo  task  wt  branch  dirty  ahead  behind  upstream  merged
+_aitask_status() {
+  local root wtroot wt name task branch dirty ahead behind upstream merged def
   while IFS= read -r root; do
     root=${root/#\~/$HOME}
     for wtroot in "$root"/*.wt(N/); do
       name=${${wtroot:t}%.wt}
       for wt in "$wtroot"/*(N/); do
+        git -C "$wt" rev-parse --git-dir &>/dev/null || continue
         task=${wt:t}
         branch=$(git -C "$wt" branch --show-current 2>/dev/null)
-        dirty=""
-        [[ -n $(git -C "$wt" status --porcelain 2>/dev/null) ]] && dirty=" *dirty"
-        printf "%-16s %-28s %s%s\n" "$name" "$task" "${branch:-?}" "$dirty"
+        dirty=0; [[ -n $(git -C "$wt" status --porcelain 2>/dev/null) ]] && dirty=1
+        upstream=0; ahead=0; behind=0; merged=-
+        def=$(git -C "$wt" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
+        if git -C "$wt" rev-parse --abbrev-ref '@{u}' &>/dev/null; then
+          upstream=1
+          read -r behind ahead <<< "$(git -C "$wt" rev-list --left-right --count '@{u}...HEAD' 2>/dev/null)"
+        elif [[ -n $def ]]; then
+          ahead=$(git -C "$wt" rev-list --count "$def..HEAD" 2>/dev/null)
+        fi
+        if [[ -n $def ]]; then
+          if git -C "$wt" merge-base --is-ancestor HEAD "$def" 2>/dev/null
+          then merged=1; else merged=0; fi
+        fi
+        printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+          "$name" "$task" "$wt" "${branch:-?}" "$dirty" "${ahead:-0}" "${behind:-0}" "$upstream" "$merged"
       done
     done
   done < <(_aitask_roots)
+}
+
+# open/merged/closed PRs for a repo, best-effort (5s timeout when available)
+_aitask_prlist() {
+  local base=$1
+  local -a tt=()
+  (( $+commands[gh] )) || return 0
+  git -C "$base" remote get-url origin &>/dev/null || return 0
+  (( $+commands[timeout] )) && tt=(timeout 5)
+  (( ! $#tt && $+commands[gtimeout] )) && tt=(gtimeout 5)
+  (cd "$base" && $tt gh pr list --state all --limit 100 \
+     --json headRefName,state,url \
+     --jq '.[] | [.headRefName, .state, .url] | @tsv' 2>/dev/null)
+}
+
+_aitask_flags() {  # $1..$5 = dirty ahead behind upstream merged
+  local flags=""
+  (( $1 )) && flags+="*dirty "
+  (( $2 )) && flags+="↑$2 "
+  (( $3 )) && flags+="↓$3 "
+  [[ $4 == 0 ]] && flags+="local "
+  [[ $5 == 1 ]] && flags+="merged "
+  print -r -- "${flags% }"
+}
+
+_aitask_ls() {
+  local -a lines bases
+  lines=(${(f)"$(_aitask_status)"})
+  (( $#lines )) || { print -r -- "aitask: no active tasks"; return 0 }
+  local -A prmap
+  local line base br st url
+  for line in $lines; do
+    local f=("${(@ps:\t:)line}")
+    base=${${f[3]:h}%.wt}
+    (( ${bases[(Ie)$base]} )) || bases+=("$base")
+  done
+  for base in $bases; do
+    while IFS=$'\t' read -r br st url; do
+      prmap[$base@$br]=$st
+    done < <(_aitask_prlist "$base")
+  done
+  for line in $lines; do
+    local f=("${(@ps:\t:)line}")
+    base=${${f[3]:h}%.wt}
+    local pr=${prmap[$base@${f[4]}]:-}
+    printf '%-14s %-26s %-24s %-18s %s\n' \
+      "$f[1]" "$f[2]" "$f[4]" "$(_aitask_flags $f[5] $f[6] $f[7] $f[8] $f[9])" \
+      "${pr:+PR:${(L)pr}}"
+  done
 }
 
 _aitask_root() {
