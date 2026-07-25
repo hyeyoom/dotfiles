@@ -18,8 +18,10 @@ worktree는 Docker 컨테이너처럼 disposable하게 쓴다: 만들고 → 작
 
 ```sh
 aitask                        # 인터랙티브 메뉴 (fzf) — 아래 참조
-aitask <repo> <task>          # = aitask new
-aitask new  <repo> <task>     # worktree + cmux 탭 + claude + git pane 생성
+aitask <repo> <task> [prefix] # = aitask new
+aitask new  <repo> <task> [prefix]
+                              # worktree + cmux 탭 + claude + git pane 생성
+                              # branch = <prefix>/<task> (기본 task/)
 aitask done <repo> <task>     # base에 머지 → worktree/브랜치 제거 → 탭 닫기
 aitask drop <repo> <task>     # 폐기 (상태 요약 + 확인, 아래 안전장치 참조)
 aitask ls                     # 진행 중 task 목록 + push/머지/PR 상태
@@ -39,7 +41,8 @@ aitask help
   - **PR 생성** — `git push -u origin <branch>` 후 `gh pr create --web`.
     커밋 안 된 변경이나 커밋 0개면 안내하고 중단.
   - **drop** — 아래 안전장치를 거쳐 폐기.
-- `[+ new task]` → repo를 fzf로 고르고 task 이름만 입력.
+- `[+ new task]` → repo를 fzf로 고르고 task 이름 입력 → 브랜치 접두사 선택
+  (task / features / hotfix / bugfix / release / chore).
 - task가 하나도 없으면 바로 새 task 생성 흐름으로 진입.
 
 ### 예시
@@ -56,12 +59,24 @@ aitask arcana toss-review-fix
 aitask            # 메뉴에서 task 선택 → "PR 생성" → 리뷰/머지 후 → "drop"
 ```
 
-## task 이름 규칙
+## task 이름과 브랜치 접두사
 
-`영숫자 . _ -`만 허용, 첫 글자는 영숫자 (예: `TASK-123`, `TASK-123-fix-login`).
-`/`·공백은 거부된다 — `features/TASK-123`처럼 슬래시가 든 이름은 worktree가
+task 이름은 `영숫자 . _ -`만 허용, 첫 글자는 영숫자 (예: `AIT-123`,
+`AIT-123-fix-login`). `/`·공백은 거부된다 — 슬래시가 든 이름은 worktree가
 중첩 경로에 생겨 `ls`에 안 보이고 drop 시 이름 불일치를 일으키기 때문.
-브랜치는 자동으로 `task/<이름>`이 되므로 접두사를 이름에 넣을 필요가 없다.
+
+브랜치 네이밍 컨벤션(`features/…`, `hotfix/…`)은 이름이 아니라 **접두사 인자**로
+지정한다. worktree 디렉터리는 항상 평평하게 유지되고 브랜치만 달라진다:
+
+```sh
+aitask arcana AIT-123 features   # worktree arcana.wt/AIT-123, branch features/AIT-123
+aitask arcana oops-fix hotfix    # branch hotfix/oops-fix
+aitask arcana refactor-db        # branch task/refactor-db (기본)
+```
+
+`done`/`drop`은 접두사를 따로 기억하지 않고 worktree의 실제 브랜치를 조회해서
+동작한다. 같은 task를 `new`로 다시 열면 접두사 인자와 무관하게 기존 브랜치를
+유지한다.
 
 ## repo 인자 해석
 
@@ -144,6 +159,8 @@ PR 워크플로우가 기본이라면 `done` 대신 메뉴의 "PR 생성"을 쓰
   |---|---|---|
   | `AITASK_ROOTS_FILE` | `~/.config/aitask/roots` | 루트 목록 파일 경로 |
   | `AITASK_AGENT_CMD` | `claude` | 탭 왼쪽 pane에서 실행할 에이전트 명령 (codex 등으로 교체 가능) |
+  | `AITASK_BRANCH_PREFIX` | `task` | 접두사 인자 생략 시 기본 브랜치 접두사 |
+  | `AITASK_BRANCH_PREFIXES` | `task features hotfix bugfix release chore` | 메뉴에서 고를 수 있는 접두사 목록 (공백 구분) |
 
 ## 같이 쓰면 좋은 것
 

@@ -126,6 +126,20 @@ unpushed 판정: upstream이 있으면 ahead 커밋 수, 없으면 분기점
   git의 에러를 그대로 노출.
 - cmux 조작: 실패해도 git 상태는 이미 정합적이므로 경고만 하고 진행.
 
+## 7.5 브랜치 접두사 (2026-07-26 추가)
+
+팀 브랜치 네이밍 컨벤션(`features/…`, `hotfix/…`) 요구로 추가. task 이름
+검증(§2)은 유지하고, 접두사를 별도 인자로 받는다:
+
+- `aitask new <repo> <task> [prefix]` — branch는 `<prefix>/<task>`,
+  worktree는 여전히 `<repo>.wt/<task>` (평평함 유지 — §2의 버그 재발 방지).
+- 기본값 `AITASK_BRANCH_PREFIX=task`, 메뉴 선택지 `AITASK_BRANCH_PREFIXES`
+  (기본: task features hotfix bugfix release chore). 접두사도 단일 레벨
+  슬러그만 허용.
+- `done`/`drop`은 `task/<이름>` 가정을 버리고 worktree의 실제 브랜치를
+  조회(`git branch --show-current`)해서 머지/삭제한다. `new` 재실행 시
+  기존 worktree의 브랜치가 우선한다 (접두사 인자 무시).
+
 ## 8. 검증
 
 자동 테스트 관례가 없는 레포이므로, 임시 디렉터리에 origin 포함 git fixture를

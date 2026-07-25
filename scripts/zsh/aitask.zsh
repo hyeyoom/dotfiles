@@ -1,8 +1,9 @@
 # aitask — git worktree + cmux tab + claude launcher
 # usage:
 #   aitask                        # interactive fzf menu (jump / PR / drop / new)
-#   aitask <repo> <task>          # = aitask new <repo> <task>
-#   aitask new  <repo> <task>     # worktree + cmux tab + claude + git pane
+#   aitask <repo> <task> [prefix] # = aitask new <repo> <task> [prefix]
+#   aitask new  <repo> <task> [prefix]  # worktree + cmux tab + claude + git pane
+#                                 # branch = <prefix>/<task> (default: task/)
 #   aitask done <repo> <task>     # merge into base, remove worktree/branch, close tab
 #   aitask drop <repo> <task>     # discard without merging
 #   aitask ls                     # list active tasks across all roots
@@ -15,6 +16,8 @@
 : "${AITASK_CONFIG_DIR:=$HOME/.config/aitask}"
 : "${AITASK_ROOTS_FILE:=$AITASK_CONFIG_DIR/roots}"
 : "${AITASK_AGENT_CMD:=claude}"
+: "${AITASK_BRANCH_PREFIX:=task}"
+: "${AITASK_BRANCH_PREFIXES:=task features hotfix bugfix release chore}"
 
 _aitask_roots() {
   if [[ -s $AITASK_ROOTS_FILE ]]; then
@@ -29,6 +32,19 @@ _aitask_valid_task() {
   print -u2 "aitask: invalid task name '$1'"
   print -u2 "aitask: allowed: letters/digits/._- , must start with letter or digit (e.g. TASK-123-fix-login)"
   return 1
+}
+
+_aitask_valid_prefix() {
+  [[ $1 =~ '^[A-Za-z0-9][A-Za-z0-9._-]*$' ]] && return 0
+  print -u2 "aitask: invalid branch prefix '$1' (single level, letters/digits/._- e.g. features, hotfix)"
+  return 1
+}
+
+# actual branch of a worktree (falls back to <default prefix>/<task> if unreadable)
+_aitask_wt_branch() {
+  local b
+  b=$(git -C "$1" branch --show-current 2>/dev/null)
+  print -r -- "${b:-$AITASK_BRANCH_PREFIX/$2}"
 }
 
 # exact-title workspace lookup (find-window is substring match, "No matches" goes to stdout)
@@ -68,14 +84,17 @@ _aitask_base() {
 }
 
 _aitask_new() {
-  local repo=$1 task=$2
-  [[ -n $repo && -n $task ]] || { print -u2 "usage: aitask new <repo> <task>"; return 1; }
+  local repo=$1 task=$2 prefix=${3:-$AITASK_BRANCH_PREFIX}
+  [[ -n $repo && -n $task ]] || { print -u2 "usage: aitask new <repo> <task> [branch-prefix]"; return 1; }
   _aitask_valid_task "$task" || return 1
+  _aitask_valid_prefix "$prefix" || return 1
 
   local base; base=$(_aitask_base "$repo") || return 1
   local name=${base:t}
   local wt=${base:h}/$name.wt/$task
-  local branch=task/$task
+  local branch=$prefix/$task
+  # existing worktree keeps whatever branch it was created with
+  [[ -d $wt ]] && branch=$(_aitask_wt_branch "$wt" "$task")
 
   if [[ ! -d $wt ]]; then
     local start=HEAD
@@ -136,9 +155,9 @@ _aitask_done() {
   local base; base=$(_aitask_base "$repo") || return 1
   local name=${base:t}
   local wt=${base:h}/$name.wt/$task
-  local branch=task/$task
 
   [[ -d $wt ]] || { print -u2 "aitask: no such worktree: $wt"; return 1; }
+  local branch; branch=$(_aitask_wt_branch "$wt" "$task")
 
   if [[ -n $(git -C "$wt" status --porcelain) ]]; then
     print -u2 "aitask: worktree has uncommitted changes, commit or stash first:"
@@ -165,9 +184,9 @@ _aitask_drop() {
   local base; base=$(_aitask_base "$repo") || return 1
   local name=${base:t}
   local wt=${base:h}/$name.wt/$task
-  local branch=task/$task
 
   [[ -d $wt ]] || { print -u2 "aitask: no such worktree: $wt"; return 1; }
+  local branch; branch=$(_aitask_wt_branch "$wt" "$task")
 
   local dirty=0 unpushed=0 merged=no note="" def basehead prline=""
   [[ -n $(git -C "$wt" status --porcelain 2>/dev/null) ]] && dirty=1
@@ -331,7 +350,10 @@ _aitask_menu_new() {
     [[ -z $task ]] && return 1
     _aitask_valid_task "$task" && break
   done
-  _aitask_new "$base" "$task"
+  local prefix
+  prefix=$(print -rl -- ${=AITASK_BRANCH_PREFIXES} \
+           | fzf --header "브랜치 접두사 선택 → <접두사>/$task") || return 0
+  _aitask_new "$base" "$task" "${prefix:-$AITASK_BRANCH_PREFIX}"
 }
 
 _aitask_menu() {
@@ -425,8 +447,10 @@ aitask() {
       cat <<'EOF'
 usage:
   aitask                        # 인터랙티브 메뉴 (fzf): 탭 이동 / PR 생성 / drop / 새 task
-  aitask <repo> <task>          # = aitask new <repo> <task>
-  aitask new  <repo> <task>     # worktree + cmux tab + claude + git pane
+  aitask <repo> <task> [prefix] # = aitask new <repo> <task> [prefix]
+  aitask new  <repo> <task> [prefix]
+                                # worktree + cmux tab + claude + git pane
+                                # branch = <prefix>/<task> (기본 task/, 예: features hotfix)
   aitask done <repo> <task>     # merge into base, remove worktree/branch, close tab
   aitask drop <repo> <task>     # discard without merging
   aitask ls                     # list active tasks across all roots
