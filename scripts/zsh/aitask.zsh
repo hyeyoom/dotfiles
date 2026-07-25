@@ -23,6 +23,28 @@ _aitask_roots() {
   fi
 }
 
+_aitask_valid_task() {
+  [[ $1 =~ '^[A-Za-z0-9][A-Za-z0-9._-]*$' ]] && return 0
+  print -u2 "aitask: invalid task name '$1'"
+  print -u2 "aitask: allowed: letters/digits/._- , must start with letter or digit (e.g. TASK-123-fix-login)"
+  return 1
+}
+
+# exact-title workspace lookup (find-window is substring match, "No matches" goes to stdout)
+_aitask_find_ws() {
+  local title=$1 line ref t
+  CMUX_QUIET=1 cmux find-window "$title" 2>/dev/null | while IFS= read -r line; do
+    ref=${line%%[[:space:]]*}
+    [[ $ref == workspace:* ]] || continue
+    t=${line#*\"}; t=${t%\"}
+    # cmux prefixes the title with a single status-icon token (e.g. "⠂ ", "✳ ")
+    if [[ $t == "$title" ]] || { [[ $t == *" $title" ]] && [[ ${t%" $title"} != *' '* ]] }; then
+      print -r -- "$ref"; return 0
+    fi
+  done
+  return 1
+}
+
 # resolve repo name/path -> canonical checkout dir (echoed)
 _aitask_base() {
   local repo=$1 root hits=()
@@ -95,9 +117,9 @@ EOF
 }
 
 _aitask_close_tab() {
-  local title=$1 ws
-  ws=$(CMUX_QUIET=1 cmux find-window "$title" 2>/dev/null | awk 'NR==1{print $1}')
-  [[ -n $ws ]] && CMUX_QUIET=1 cmux close-workspace --workspace "$ws" >/dev/null
+  local ws
+  ws=$(_aitask_find_ws "$1") || return 0
+  CMUX_QUIET=1 cmux close-workspace --workspace "$ws" >/dev/null 2>&1
 }
 
 _aitask_done() {
