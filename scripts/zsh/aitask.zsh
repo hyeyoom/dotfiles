@@ -152,6 +152,7 @@ _aitask_done() {
   git -C "$base" merge --no-ff "$branch" -m "Merge $branch" || return 1
   git -C "$base" worktree remove "$wt" || return 1
   git -C "$base" branch -d "$branch"
+  rmdir "${base:h}/$name.wt" 2>/dev/null
   _aitask_close_tab "$name/$task"
   print -r -- "aitask: merged $branch into $(git -C "$base" branch --show-current), cleaned up"
 }
@@ -166,12 +167,47 @@ _aitask_drop() {
   local branch=task/$task
 
   [[ -d $wt ]] || { print -u2 "aitask: no such worktree: $wt"; return 1; }
-  print -n "drop $wt and delete $branch? [y/N] "
-  local ans; read -r ans
-  [[ $ans == [yY]* ]] || return 1
 
-  git -C "$base" worktree remove --force "$wt"
+  local dirty=0 unpushed=0 merged=no note="" def basehead prline=""
+  [[ -n $(git -C "$wt" status --porcelain 2>/dev/null) ]] && dirty=1
+  def=$(git -C "$wt" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
+  if git -C "$wt" rev-parse --abbrev-ref '@{u}' &>/dev/null; then
+    unpushed=$(git -C "$wt" rev-list --count '@{u}..HEAD' 2>/dev/null)
+  elif [[ -n $def ]]; then
+    unpushed=$(git -C "$wt" rev-list --count "$def..HEAD" 2>/dev/null)
+    note=" (no upstream)"
+  else
+    basehead=$(git -C "$base" rev-parse HEAD 2>/dev/null)
+    [[ -n $basehead ]] && unpushed=$(git -C "$wt" rev-list --count "$basehead..HEAD" 2>/dev/null)
+    note=" (no origin, vs local $name HEAD)"
+  fi
+  if [[ -n $def ]]; then
+    git -C "$wt" merge-base --is-ancestor HEAD "$def" 2>/dev/null && merged=yes
+  elif [[ -n $basehead ]]; then
+    git -C "$wt" merge-base --is-ancestor HEAD "$basehead" 2>/dev/null && merged=yes
+  fi
+  prline=$(_aitask_prlist "$base" | awk -F'\t' -v b="$branch" '$1==b {print $2" "$3; exit}')
+
+  print -r -- "aitask: $name/$task ($branch)"
+  print -r -- "  uncommitted : $( ((dirty)) && print yes || print no )"
+  print -r -- "  unpushed    : ${unpushed:-0} commits$note"
+  print -r -- "  merged      : $merged${def:+ (into $def)}"
+  [[ -n $prline ]] && print -r -- "  PR          : $prline"
+
+  local ans
+  if (( dirty )) || (( ${unpushed:-0} > 0 )); then
+    print -n "미보존 작업이 있습니다. 정말 삭제하려면 task 이름 '$task' 입력: "
+    read -r ans
+    [[ $ans == "$task" ]] || { print -u2 "aitask: aborted"; return 1 }
+  else
+    print -n "drop $wt and delete $branch? [y/N] "
+    read -r ans
+    [[ $ans == [yY]* ]] || return 1
+  fi
+
+  git -C "$base" worktree remove --force "$wt" || return 1
   git -C "$base" branch -D "$branch" 2>/dev/null
+  rmdir "${base:h}/$name.wt" 2>/dev/null
   _aitask_close_tab "$name/$task"
   print -r -- "aitask: dropped $name/$task"
 }
