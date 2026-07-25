@@ -68,7 +68,8 @@ GPG 개인키 하나만 옮기면 끝난다 (`--seal`로 갱신, colonize가 자
 ## 툴
 
 - **aitask** — git worktree + cmux 탭 + claude 세션을 task 단위로 만들고 정리하는 런처.
-  `aitask <repo> <task>` / `aitask done <repo> <task>` / `aitask ls` / `aitask root add <path>`.
+  인자 없이 `aitask`를 치면 fzf 메뉴(탭 이동 / PR 생성 / drop / 새 task).
+  `aitask <repo> <task>` / `aitask ls` / `aitask drop <repo> <task>` 커맨드도 그대로.
   자세한 사용법은 `aitask help`.
 - **claude-cmux-notify** — Claude Code 턴 종료 시 macOS 알림, 클릭하면 해당
   cmux 워크스페이스로 점프. `claude-cmux-notify install`로 훅 등록.
