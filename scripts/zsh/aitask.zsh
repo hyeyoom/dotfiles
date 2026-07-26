@@ -47,7 +47,13 @@ _aitask_wt_branch() {
   print -r -- "${b:-$AITASK_BRANCH_PREFIX/$2}"
 }
 
-# exact-title workspace lookup (find-window is substring match, "No matches" goes to stdout)
+# title match: exact "<repo>/<task>" or with custom suffix "<repo>/<task> · <epic>"
+_aitask_match_title() {
+  [[ $1 == "$2" || $1 == "$2 · "* ]]
+}
+
+# workspace lookup by "<repo>/<task>" (find-window is substring match,
+# "No matches" goes to stdout, custom tab titles append " · <epic>")
 _aitask_find_ws() {
   local title=$1 line ref t
   CMUX_QUIET=1 cmux find-window "$title" 2>/dev/null | while IFS= read -r line; do
@@ -55,7 +61,8 @@ _aitask_find_ws() {
     [[ $ref == workspace:* ]] || continue
     t=${line#*\"}; t=${t%\"}
     # cmux prefixes the title with a single status-icon token (e.g. "⠂ ", "✳ ")
-    if [[ $t == "$title" ]] || { [[ $t == *" $title" ]] && [[ ${t%" $title"} != *' '* ]] }; then
+    if _aitask_match_title "$t" "$title" \
+       || { [[ $t == *' '* ]] && _aitask_match_title "${t#* }" "$title" }; then
       print -r -- "$ref"; return 0
     fi
   done
@@ -84,8 +91,10 @@ _aitask_base() {
 }
 
 _aitask_new() {
-  local repo=$1 task=$2 prefix=${3:-$AITASK_BRANCH_PREFIX}
-  [[ -n $repo && -n $task ]] || { print -u2 "usage: aitask new <repo> <task> [branch-prefix]"; return 1; }
+  local repo=$1 task=$2 prefix=${3:-$AITASK_BRANCH_PREFIX} title=$4
+  [[ $prefix == - ]] && prefix=$AITASK_BRANCH_PREFIX   # "-" = default, allows title without prefix
+  title=${title//\"/}                                  # quotes break find-window parsing
+  [[ -n $repo && -n $task ]] || { print -u2 "usage: aitask new <repo> <task> [branch-prefix|-] [tab-title]"; return 1; }
   _aitask_valid_task "$task" || return 1
   _aitask_valid_prefix "$prefix" || return 1
 
@@ -128,7 +137,8 @@ EOF
     print -r -- "aitask: $name/$task already open (tab $ws) — focused"
     return 0
   fi
-  out=$(CMUX_QUIET=1 cmux new-workspace --name "$name/$task" --cwd "$wt" \
+  local tab=$name/$task${title:+" · $title"}
+  out=$(CMUX_QUIET=1 cmux new-workspace --name "$tab" --cwd "$wt" \
         --command "$AITASK_AGENT_CMD") || return 1
   ws=${out##* }
 
@@ -353,7 +363,10 @@ _aitask_menu_new() {
   local prefix
   prefix=$(print -rl -- ${=AITASK_BRANCH_PREFIXES} \
            | fzf --header "브랜치 접두사 선택 → <접두사>/$task") || return 0
-  _aitask_new "$base" "$task" "${prefix:-$AITASK_BRANCH_PREFIX}"
+  local title
+  print -n "탭 제목 — 에픽/피처 이름 (엔터 = 기본 ${base:t}/$task): "
+  read -r title
+  _aitask_new "$base" "$task" "${prefix:-$AITASK_BRANCH_PREFIX}" "$title"
 }
 
 _aitask_menu() {
@@ -447,10 +460,11 @@ aitask() {
       cat <<'EOF'
 usage:
   aitask                        # 인터랙티브 메뉴 (fzf): 탭 이동 / PR 생성 / drop / 새 task
-  aitask <repo> <task> [prefix] # = aitask new <repo> <task> [prefix]
-  aitask new  <repo> <task> [prefix]
-                                # worktree + cmux tab + claude + git pane
-                                # branch = <prefix>/<task> (기본 task/, 예: features hotfix)
+  aitask <repo> <task> [prefix|-] [탭제목]
+                                # = aitask new. branch = <prefix>/<task> (기본 task/)
+                                # 탭제목 지정 시 cmux 탭이 "<repo>/<task> · <탭제목>"
+                                # prefix 자리에 - 를 주면 기본 접두사 유지
+  aitask new  <repo> <task> [prefix|-] [탭제목]
   aitask done <repo> <task>     # merge into base, remove worktree/branch, close tab
   aitask drop <repo> <task>     # discard without merging
   aitask ls                     # list active tasks across all roots

@@ -18,10 +18,12 @@ worktree는 Docker 컨테이너처럼 disposable하게 쓴다: 만들고 → 작
 
 ```sh
 aitask                        # 인터랙티브 메뉴 (fzf) — 아래 참조
-aitask <repo> <task> [prefix] # = aitask new
-aitask new  <repo> <task> [prefix]
+aitask <repo> <task> [prefix|-] [탭제목]   # = aitask new
+aitask new  <repo> <task> [prefix|-] [탭제목]
                               # worktree + cmux 탭 + claude + git pane 생성
                               # branch = <prefix>/<task> (기본 task/)
+                              # 탭제목 지정 시 탭이 "<repo>/<task> · <탭제목>"
+                              # prefix 자리에 -를 주면 기본 접두사 유지
 aitask done <repo> <task>     # base에 머지 → worktree/브랜치 제거 → 탭 닫기
 aitask drop <repo> <task>     # 폐기 (상태 요약 + 확인, 아래 안전장치 참조)
 aitask ls                     # 진행 중 task 목록 + push/머지/PR 상태
@@ -42,7 +44,8 @@ aitask help
     커밋 안 된 변경이나 커밋 0개면 안내하고 중단.
   - **drop** — 아래 안전장치를 거쳐 폐기.
 - `[+ new task]` → repo를 fzf로 고르고 task 이름 입력 → 브랜치 접두사 선택
-  (task / features / hotfix / bugfix / release / chore).
+  (task / features / hotfix / bugfix / release / chore) → 탭 제목 입력
+  (엔터로 생략하면 기본 `<repo>/<task>`).
 - task가 하나도 없으면 바로 새 task 생성 흐름으로 진입.
 
 ### 예시
@@ -141,10 +144,11 @@ PR 워크플로우가 기본이라면 `done` 대신 메뉴의 "PR 생성"을 쓰
 - cmux 제어는 전부 공식 socket CLI를 쓴다: `new-workspace --cwd --command`,
   `new-split`, `send`/`send-key`, `find-window`, `select-workspace`,
   `close-workspace`.
-- 탭 이름은 `<repo>/<task>`로 고정. 탭 조회는 **정확 일치**로 한다
+- 탭 이름은 `<repo>/<task>` 또는 탭 제목 지정 시 `<repo>/<task> · <제목>`.
+  탭 조회는 `<repo>/<task>` **정확 일치 + ` · ` 접미 허용**으로 한다
   (`find-window`는 substring 매칭이라 그대로 쓰면 `arcana/fix`가
   `arcana/fix-login`에 걸린다 — 타이틀의 상태 아이콘 접두를 벗겨 비교).
-  탭 이름을 손으로 바꾸면 자동으로 못 닫는다 (직접 닫으면 됨).
+  ` · ` 구분자 앞부분을 손으로 바꾸면 자동으로 못 닫는다 (직접 닫으면 됨).
 - `new`는 멱등: worktree·`CLAUDE.local.md`·탭이 이미 있으면 만들지 않고
   기존 탭에 포커스만 한다. `CLAUDE.local.md`에 손으로 넣은 내용은 보존된다.
 - `CLAUDE.local.md`는 base 레포의 `.git/info/exclude`에 자동 등록되어 커밋에 섞이지 않는다.
