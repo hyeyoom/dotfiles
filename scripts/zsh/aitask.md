@@ -24,6 +24,8 @@ aitask new  <repo> <task> [prefix|-] [탭제목]
                               # branch = <prefix>/<task> (기본 task/)
                               # 탭제목 지정 시 탭이 "<repo>/<task> · <탭제목>"
                               # prefix 자리에 -를 주면 기본 접두사 유지
+aitask multi <task> <repo> <repo>... [-p prefix] [-t 탭제목]
+                              # 멀티 레포 티켓 — 아래 참조
 aitask done <repo> <task>     # base에 머지 → worktree/브랜치 제거 → 탭 닫기
 aitask drop <repo> <task>     # 폐기 (상태 요약 + 확인, 아래 안전장치 참조)
 aitask ls                     # 진행 중 task 목록 + push/머지/PR 상태
@@ -43,9 +45,10 @@ aitask help
   - **PR 생성** — `git push -u origin <branch>` 후 `gh pr create --web`.
     커밋 안 된 변경이나 커밋 0개면 안내하고 중단.
   - **drop** — 아래 안전장치를 거쳐 폐기.
-- `[+ new task]` → repo를 fzf로 고르고 task 이름 입력 → 브랜치 접두사 선택
+- `[+ new task]` → repo를 fzf로 선택 (레포 이름 중심 표시, **Tab으로 복수
+  선택하면 멀티 레포 task**) → task 이름 입력 → 브랜치 접두사 선택
   (task / features / hotfix / bugfix / release / chore) → 탭 제목 입력
-  (엔터로 생략하면 기본 `<repo>/<task>`).
+  (엔터로 생략).
 - task가 하나도 없으면 바로 새 task 생성 흐름으로 진입.
 
 ### 예시
@@ -61,6 +64,34 @@ aitask arcana toss-review-fix
 
 aitask            # 메뉴에서 task 선택 → "PR 생성" → 리뷰/머지 후 → "drop"
 ```
+
+## 멀티 레포 티켓 (`aitask multi`)
+
+티켓 하나가 여러 레포에 걸칠 때 — API 레포 + 클라이언트 레포를 **AI 세션
+하나가 동시에** 봐야 하는 경우:
+
+```sh
+aitask multi AIT-123 arcana billing -p features -t "결제 개편"
+```
+
+```
+<primary root>/multi.wt/AIT-123/    # 우산 디렉터리 (git repo 아님)
+  .aitask-repos                     # 멤버 레포 base 경로 매니페스트
+  CLAUDE.local.md                   # 티켓 스코프 + 멤버 안내 (자동 생성)
+  arcana/                           # arcana의 worktree, branch features/AIT-123
+  billing/                          # billing의 worktree, branch features/AIT-123
+```
+
+- cmux 탭(`multi/AIT-123`)의 cwd와 claude 세션이 우산 디렉터리에 떠서,
+  한 컨텍스트에서 여러 레포를 정합성 있게 수정한다.
+- **PR 생성**(메뉴): 멤버를 순회하며 변경이 있는 레포만 push + `gh pr create`.
+  티켓 하나 = PR N개. cross-repo 원자성은 없다 — 머지/배포 순서는 사람 몫.
+- **drop**(메뉴 또는 탭에서): 멤버별 상태 요약 후 확인, 하나라도 미보존
+  작업이 있으면 이름 타이핑 확인. 전 멤버 worktree/브랜치 + 우산 제거.
+- **done은 미지원** — 레포 N개 순차 로컬 머지는 중간 실패 시 반쯤 머지된
+  상태를 만들므로 PR 워크플로우로만 정리한다.
+- 우산 위치는 primary root(roots 파일 첫 줄) 아래 `multi.wt/`. 멤버 레포가
+  어느 root에 있든 무관.
 
 ## task 이름과 브랜치 접두사
 

@@ -150,6 +150,27 @@ unpushed 판정: upstream이 있으면 ahead 커밋 수, 없으면 분기점
 메뉴는 접두사 선택 뒤 제목 프롬프트(엔터=생략). 제목의 `"`는 find-window
 출력 파싱을 깨므로 제거한다.
 
+## 7.7 멀티 레포 티켓 (2026-07-27 추가)
+
+티켓 하나가 여러 레포에 걸치고 AI 세션 하나가 전부를 봐야 하는 요구.
+우산(umbrella) 방식 채택: `<primary root>/multi.wt/<task>/` 안에 멤버
+레포별 worktree를 배치하고, cmux 탭·claude를 우산 cwd로 띄운다.
+
+- CLI: `aitask multi <task> <repo>... [-p prefix] [-t 탭제목]`.
+  메뉴: repo 선택 fzf가 `--multi` — 2개 이상 선택 시 자동으로 multi 흐름.
+- 매니페스트 `.aitask-repos`(멤버 base 경로)로 done/drop/ls/PR이 멤버를 추적.
+  우산은 git repo가 아니므로 CLAUDE.local.md에 구조 안내를 자동 생성.
+- 탭 이름 `multi/<task>`(제목 접미 규칙 동일). 상태 수집은
+  `_aitask_wt_fields`로 단일/멀티가 공유하도록 리팩터링.
+- PR: 멤버 순회, 변경 있는 레포만 push + pr create (티켓 1 = PR N).
+- drop: 멤버별 요약, 하나라도 dirty/unpushed면 이름 타이핑 확인.
+- done 미지원 (부분 머지 상태 위험 — PR 워크플로우 전용).
+- 레포가 `multi`라는 이름이면 우산 디렉터리와 충돌 가능 — 매니페스트
+  파일 유무로 구분하므로 실동작은 안전, 문서화만 해둠.
+
+부수 개선: 메뉴의 repo 선택 리스트를 full path 대신
+`이름  <루트(~축약)>` 2컬럼으로 표시 (경로는 숨김 필드).
+
 ## 8. 검증
 
 자동 테스트 관례가 없는 레포이므로, 임시 디렉터리에 origin 포함 git fixture를
