@@ -15,6 +15,25 @@ cd ~/github/dotfiles
 colonize가 `secrets/*.asc`에서 자동 복호화한다. 키가 없으면 빈 템플릿이 생기니
 직접 채우면 된다. 시크릿을 수정했으면 `./colonize.sh --seal`로 다시 암호화해 커밋.
 
+## 머신 프로필 (회사 랩탑 등)
+
+머신마다 설치·로드 범위를 다르게 하려면 **colonize 전에**
+`~/.config/dotfiles/profile`을 만든다 (없으면 전부 설치 — 개인 머신 기본값):
+
+```sh
+mkdir -p ~/.config/dotfiles && cp config/dotfiles-profile.example ~/.config/dotfiles/profile
+```
+
+| 변수 | 예 | 효과 |
+|---|---|---|
+| `DOTFILES_SKIP_STEPS` | `"runtimes claude"` | 해당 bootstrap 단계 통째로 건너뜀 |
+| `DOTFILES_SKIP_LINKS` | `"gitconfig claude"` | 해당 심링크 생략 — **머신의 기존 파일 불가침** (.bak도 안 만듦) |
+| `DOTFILES_DISABLED_TOOLS` | `"aitask"` | zsh 툴/스킬 로드 제외 (`uninstall.sh <tool>`이 이 줄을 관리) |
+
+회사가 `~/.gitconfig`이나 `~/.claude/settings.json`을 관리하는 머신에서는
+`DOTFILES_SKIP_LINKS`에 넣어두면 colonize가 절대 건드리지 않는다.
+`colonize.sh --check`도 프로필을 읽어 스킵 항목을 실패가 아닌 `(skip)`으로 표시한다.
+
 ## 구조
 
 ```
@@ -30,6 +49,7 @@ bootstrap/
   reveal.sh     # --reveal 구현 (복호화해 콘솔 출력, 검증용)
 Brewfile        # CLI 툴 선언 (bat, fzf, gh, jenv, neovim, ...)
 config/         # 심링크되는 공용 설정 (p10k, gitconfig, claude) + *.local.example
+                # + dotfiles-profile.example (머신 프로필 템플릿)
 secrets/        # GPG 암호화된 ~/.*.local (내 GPG 개인키로만 복호화 가능)
 scripts/
   zsh/          # zshrc가 source하는 조각들 (*.zsh 전부 자동 로드, 알파벳순)
@@ -54,12 +74,13 @@ GPG 개인키 하나만 옮기면 끝난다 (`--seal`로 갱신, colonize가 자
 ./install.sh              # ~/.zshrc에 로더 블록 추가 (멱등)
 ./uninstall.sh            # 로더 블록 제거 (백업: ~/.zshrc.bak, 레포 파일은 유지)
 
-./uninstall.sh aitask     # 특정 툴만 비활성화 (*.zsh → *.zsh.disabled rename)
+./uninstall.sh aitask     # 특정 툴만 비활성화 (~/.config/dotfiles/profile에 기록 — 레포는 그대로)
 ./install.sh aitask       # 다시 활성화
 ```
 
-`~/.zshrc`에 `# >>> dotfiles >>>` 블록이 추가되어 `scripts/zsh/*.zsh`를 전부 source하고
-`scripts/bin`을 PATH에 넣는다. 이미 설치돼 있으면 아무것도 하지 않는다.
+`~/.zshrc`에 `# >>> dotfiles >>>` 블록이 추가되어 `scripts/zsh/*.zsh`를
+(프로필의 `DOTFILES_DISABLED_TOOLS` 제외) source하고 `scripts/bin`을 PATH에 넣는다.
+로더 블록이 구버전이면 재실행 시 `~/.zshrc.bak` 백업 후 자동 교체된다.
 새 툴은 파일만 추가하면 다음 셸부터 자동 로드된다 (재설치 불필요).
 
 스킬은 `~/.claude/skills/<name>` 심링크로 설치되어 레포 수정이 즉시 반영된다.

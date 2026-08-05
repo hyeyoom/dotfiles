@@ -117,6 +117,10 @@ aitask arcana refactor-db        # branch task/refactor-db (기본)
 - `arcana`처럼 이름만 주면 등록된 모든 루트에서 `<root>/arcana/.git`을 검색한다.
 - 두 루트에 같은 이름이 있으면 후보를 전부 보여주고 에러로 멈춘다.
 - `/`가 포함되면 경로로 직접 해석한다: `aitask ~/work/arcana fix-login`
+- 경로로 해석한 레포의 부모 디렉터리가 루트로 등록돼 있지 않으면 **자동
+  등록**한다 (stderr 안내). 등록 없이는 그 옆에 생긴 worktree가 `ls`/메뉴에
+  영영 안 보이기 때문. `~/work/org/repo`처럼 중첩된 레포도 경로로 한 번
+  열면 그 시점부터 추적된다. 해제는 `~/.config/aitask/roots`에서 줄 삭제.
 
 ## 디렉터리 규칙
 

@@ -1,14 +1,22 @@
 #!/bin/sh
 set -eu
+[ -f "$HOME/.config/dotfiles/profile" ] && . "$HOME/.config/dotfiles/profile"
+skip_link() { case " ${DOTFILES_SKIP_LINKS:-} " in *" $1 "*) return 0 ;; *) return 1 ;; esac; }
+
+# $3 = profile 상의 링크 이름 — DOTFILES_SKIP_LINKS에 있으면 기존 파일 불가침
 link() {
+  if skip_link "$3"; then
+    echo "link skipped (profile): $2"
+    return 0
+  fi
   if [ -e "$2" ] && [ ! -L "$2" ]; then
     mv "$2" "$2.bak"
     echo "backed up: $2 -> $2.bak"
   fi
   ln -sfn "$1" "$2"
 }
-link "$DOTFILES/config/p10k.zsh"  "$HOME/.p10k.zsh"
-link "$DOTFILES/config/gitconfig" "$HOME/.gitconfig"
+link "$DOTFILES/config/p10k.zsh"  "$HOME/.p10k.zsh"  p10k
+link "$DOTFILES/config/gitconfig" "$HOME/.gitconfig" gitconfig
 
 # sealed secrets가 있고 GPG 개인키가 import돼 있으면 복호화, 아니면 빈 템플릿 생성
 unseal() {

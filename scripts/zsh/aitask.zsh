@@ -71,6 +71,20 @@ _aitask_find_ws() {
   return 1
 }
 
+# auto-register the parent dir of a path-resolved repo as a root, so the
+# worktrees created next to it show up in ls/menu (silent otherwise)
+_aitask_ensure_root() {
+  local root=$1 r
+  while IFS= read -r r; do
+    [[ ${r/#\~/$HOME} == "$root" ]] && return 0
+  done < <(_aitask_roots)
+  mkdir -p "${AITASK_ROOTS_FILE:h}"
+  # seed defaults on first write so the implicit ~/github isn't lost
+  [[ -f $AITASK_ROOTS_FILE ]] || _aitask_roots > "$AITASK_ROOTS_FILE"
+  print -r -- "$root" >> "$AITASK_ROOTS_FILE"
+  print -u2 "aitask: root 자동 등록: $root (ls/메뉴에 포함됨 — 해제: $AITASK_ROOTS_FILE 편집)"
+}
+
 # resolve repo name/path -> canonical checkout dir (echoed)
 _aitask_base() {
   local repo=$1 root hits=()
@@ -78,6 +92,7 @@ _aitask_base() {
     local p=${repo/#\~/$HOME}
     p=${p:A}
     [[ -d $p/.git ]] || { print -u2 "aitask: not a git repo: $p"; return 1; }
+    _aitask_ensure_root "${p:h}"
     print -r -- "$p"; return 0
   fi
   while IFS= read -r root; do

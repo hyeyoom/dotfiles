@@ -27,7 +27,7 @@ export BUN_INSTALL="$HOME/.bun"
 [ -d "$HOME/.local/bin" ] && export PATH="$HOME/.local/bin:$PATH"
 [ -f "$HOME/.local/bin/env" ] && . "$HOME/.local/bin/env"
 [ -d "$HOME/.antigravity/antigravity/bin" ] && export PATH="$HOME/.antigravity/antigravity/bin:$PATH"
-[ -d /opt/homebrew/opt/qemu/bin ] && export PATH="$PATH:/opt/homebrew/opt/qemu/bin"
+[ -d "${HOMEBREW_PREFIX:-/opt/homebrew}/opt/qemu/bin" ] && export PATH="$PATH:${HOMEBREW_PREFIX:-/opt/homebrew}/opt/qemu/bin"
 
 [[ -f "$HOME/.dart-cli-completion/zsh-config.zsh" ]] && . "$HOME/.dart-cli-completion/zsh-config.zsh" || true
 

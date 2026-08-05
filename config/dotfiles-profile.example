@@ -1,0 +1,22 @@
+# dotfiles machine profile — 이 머신에서 무엇을 설치/로드할지 결정한다.
+# 위치: ~/.config/dotfiles/profile  (레포 밖 — 머신 로컬 상태, 커밋되지 않음)
+#
+# 파일이 없으면 전부 설치/로드된다 (개인 머신 기본값).
+# 회사 랩탑처럼 선별이 필요하면 colonize.sh 실행 *전에* 이 파일을 만든다:
+#   mkdir -p ~/.config/dotfiles && cp config/dotfiles-profile.example ~/.config/dotfiles/profile
+#
+# 형식: POSIX sh 변수 할당만 (sh와 zsh 양쪽에서 source된다).
+
+# 건너뛸 bootstrap 단계 — 공백 구분, bootstrap/*.sh의 basename.
+# 번호 없이 축약해도 된다: "30-runtimes 40-claude" == "runtimes claude"
+DOTFILES_SKIP_STEPS=""
+
+# 심링크하지 않을 설정 — 머신의 기존 파일을 건드리지 않는다 (.bak도 안 만듦).
+# 가능한 값: p10k gitconfig claude
+# 회사가 ~/.gitconfig 이나 ~/.claude/settings.json 을 관리한다면 여기에.
+DOTFILES_SKIP_LINKS=""
+
+# 로드하지 않을 zsh 툴/스킬 이름 (scripts/zsh/<name>.zsh, skills/<name>).
+# install.sh <tool> / uninstall.sh <tool> 이 이 줄을 sed로 편집하므로
+# 반드시 DOTFILES_DISABLED_TOOLS="..." 한 줄 형식을 유지할 것.
+DOTFILES_DISABLED_TOOLS=""

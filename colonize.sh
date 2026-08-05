@@ -22,8 +22,29 @@ if [ "${1:-}" = "--reveal" ]; then
   exec sh "$DOTFILES/bootstrap/reveal.sh"
 fi
 
+# 머신 프로필 — 없으면 전부 설치 (config/dotfiles-profile.example 참조)
+PROFILE="$HOME/.config/dotfiles/profile"
+if [ -f "$PROFILE" ]; then
+  . "$PROFILE"
+else
+  echo "profile 없음 ($PROFILE) — 전체 설치. 선별하려면 config/dotfiles-profile.example 참조"
+fi
+
+skip_step() {
+  _name=$1 _short=${1#*-}
+  for _s in ${DOTFILES_SKIP_STEPS:-}; do
+    if [ "$_s" = "$_name" ] || [ "$_s" = "$_short" ]; then return 0; fi
+  done
+  return 1
+}
+
 for step in "$DOTFILES"/bootstrap/[0-9]*.sh; do
-  echo "==> $(basename "$step")"
+  name=$(basename "$step" .sh)
+  if skip_step "$name"; then
+    echo "==> $name (skip: profile)"
+    continue
+  fi
+  echo "==> $name"
   sh "$step"
 done
 
