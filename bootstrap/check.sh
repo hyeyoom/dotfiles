@@ -48,12 +48,15 @@ echo "links & local files:"
 if skip_link p10k;      then skp "~/.p10k.zsh";  else chk "~/.p10k.zsh -> repo"  "[ -L \"\$HOME/.p10k.zsh\" ]"; fi
 if skip_link gitconfig; then skp "~/.gitconfig"; else chk "~/.gitconfig -> repo" "[ -L \"\$HOME/.gitconfig\" ]"; fi
 if skip_link claude || skip_step 40-claude; then
-  skp "~/.claude/settings.json"
+  skp "~/.claude/settings.json / CLAUDE.md / output-styles"
 else
   chk "~/.claude/settings.json -> repo" "[ -L \"\$HOME/.claude/settings.json\" ]"
+  chk "~/.claude/CLAUDE.md -> repo"     "[ -L \"\$HOME/.claude/CLAUDE.md\" ]"
+  chk "~/.claude/output-styles -> repo" "[ -L \"\$HOME/.claude/output-styles\" ]"
 fi
 chk "~/.zshrc.local"                  "[ -f \"\$HOME/.zshrc.local\" ]"
 chk "~/.gitconfig.local"              "[ -f \"\$HOME/.gitconfig.local\" ]"
+chk "~/.claude/CLAUDE.local.md"       "[ -f \"\$HOME/.claude/CLAUDE.local.md\" ]"
 
 echo "sealed secrets:"
 for name in zshrc.local gitconfig.local; do

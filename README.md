@@ -42,19 +42,20 @@ bootstrap/
   10-brew.sh    # Homebrew + Brewfile 패키지
   20-zsh.sh     # oh-my-zsh + powerlevel10k + 플러그인
   30-runtimes.sh # nvm, rustup, LazyVim(nvim 설정) (jenv는 Brewfile)
-  40-claude.sh  # claude CLI + settings.json 심링크
+  40-claude.sh  # claude CLI + settings.json/CLAUDE.md/output-styles 심링크 + CLAUDE.local.md 템플릿
   50-configs.sh # p10k/gitconfig 심링크, secrets 복호화 or ~/.*.local 템플릿 생성
   check.sh      # --check 구현
   seal.sh       # --seal 구현 (시크릿 GPG 암호화)
   reveal.sh     # --reveal 구현 (복호화해 콘솔 출력, 검증용)
 Brewfile        # CLI 툴 선언 (bat, fzf, gh, jenv, neovim, ...)
 config/         # 심링크되는 공용 설정 (p10k, gitconfig, claude) + *.local.example
+                # claude/: settings.json, CLAUDE.md, output-styles/, CLAUDE.local.md.example
                 # + dotfiles-profile.example (머신 프로필 템플릿)
 secrets/        # GPG 암호화된 ~/.*.local (내 GPG 개인키로만 복호화 가능)
 scripts/
   zsh/          # zshrc가 source하는 조각들 (*.zsh 전부 자동 로드, 알파벳순)
   bin/          # PATH에 얹는 단독 실행 스크립트
-skills/         # Claude Code 스킬 (~/.claude/skills로 심링크 설치)
+skills/         # Claude Code 스킬 (~/.claude/skills로 심링크 설치): tldr, verification-before-completion
 install.sh      # ~/.zshrc에 로더 블록 추가 + 스킬 심링크 (멱등)
 ```
 
@@ -63,7 +64,7 @@ install.sh      # ~/.zshrc에 로더 블록 추가 + 스킬 심링크 (멱등)
 ## 시크릿 정책
 
 API 키, 토큰, SSH 접속 정보, git 신원 등 개인정보는 레포에 평문으로 절대 넣지 않는다.
-홈 디렉터리의 `~/.zshrc.local`, `~/.gitconfig.local`에만 두며(로더/include가 자동 로드),
+홈 디렉터리의 `~/.zshrc.local`, `~/.gitconfig.local`, `~/.claude/CLAUDE.local.md`에만 두며(로더/include/임포트가 자동 로드),
 `.gitignore`가 `*.local`을 막고 `colonize.sh --check`가 추적 파일에서 키 패턴을 스캔한다.
 레포에는 GPG 공개키로 암호화한 사본(`secrets/*.asc`)만 올린다 — 새 머신 이동은
 GPG 개인키 하나만 옮기면 끝난다 (`--seal`로 갱신, colonize가 자동 복호화).
@@ -95,3 +96,20 @@ GPG 개인키 하나만 옮기면 끝난다 (`--seal`로 갱신, colonize가 자
 - **claude-cmux-notify** — Claude Code 턴 종료 시 macOS 알림, 클릭하면 해당
   cmux 워크스페이스로 점프. `claude-cmux-notify install`로 훅 등록.
   자세한 내용은 `scripts/bin/claude-cmux-notify.md`.
+
+## Claude Code 설정
+
+`config/claude/`의 `settings.json`, `CLAUDE.md`, `output-styles/`는 `40-claude.sh`가
+`~/.claude`로 심링크하고, `skills/`는 `install.sh`가 심링크한다. 레포 수정은 다음 Claude 세션부터 반영된다.
+
+- **CLAUDE.md** — 모델 라우팅 지침 + 코딩 행동 지침 4개(가정 먼저 말하기, 단순하게,
+  요청한 곳만, 검증 후 완료 선언). §4 끝이 `verification-before-completion` 스킬을 호출한다.
+- **output-styles/compact.md** — "Compact" 스타일 (결론 먼저, 개조식, 자연스러운 한국어).
+  `settings.json`의 `"outputStyle": "Compact"`로 켜짐. 끄려면 `/config` → Output style → Default.
+  [attention-span](https://github.com/alexgreensh/attention-span)(AGPL-3.0) Spartan 기반.
+- **skills/tldr** — 슬랙 스레드·노션·로그를 "내가 해야 할 일" 중심 브리핑으로 압축 (attention-span `/tldr` 기반).
+- **skills/verification-before-completion** — 완료 선언 전 증명 명령을 직접 돌리는 게이트 (obra/superpowers 기반).
+
+개인 정보(이름, 슬랙 표시명)는 레포에 넣지 않고 `~/.claude/CLAUDE.local.md`에 둔다.
+`CLAUDE.md`가 `@~/.claude/CLAUDE.local.md`로 임포트하고, colonize가
+`config/claude/CLAUDE.local.md.example`에서 시드한다. tldr 스킬의 "내가 할 일" 기준 이름이 여기서 온다.

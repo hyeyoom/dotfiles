@@ -5,15 +5,30 @@ skip_link() { case " ${DOTFILES_SKIP_LINKS:-} " in *" $1 "*) return 0 ;; *) retu
 
 command -v claude >/dev/null 2>&1 || curl -fsSL https://claude.ai/install.sh | bash
 
-if skip_link claude; then
-  echo "claude: settings.json link skipped (profile) — 기존 설정 유지"
-else
-  mkdir -p "$HOME/.claude"
-  target="$HOME/.claude/settings.json"
-  if [ -e "$target" ] && [ ! -L "$target" ]; then
-    mv "$target" "$target.bak"
-    echo "backed up: $target -> $target.bak"
+# $3 = profile 상의 링크 이름 — DOTFILES_SKIP_LINKS에 있으면 기존 파일 불가침
+link() {
+  if skip_link "$3"; then
+    echo "link skipped (profile): $2"
+    return 0
   fi
-  ln -sfn "$DOTFILES/config/claude/settings.json" "$target"
-fi
+  if [ -e "$2" ] && [ ! -L "$2" ]; then
+    mv "$2" "$2.bak"
+    echo "backed up: $2 -> $2.bak"
+  fi
+  ln -sfn "$1" "$2"
+}
+mkdir -p "$HOME/.claude"
+link "$DOTFILES/config/claude/settings.json" "$HOME/.claude/settings.json" claude
+link "$DOTFILES/config/claude/CLAUDE.md"     "$HOME/.claude/CLAUDE.md"     claude
+link "$DOTFILES/config/claude/output-styles" "$HOME/.claude/output-styles" claude
+
+# 개인 정보(이름, 슬랙 표시명)는 레포 밖 ~/.claude/CLAUDE.local.md에 — 없으면 템플릿 생성
+seed() {
+  if [ ! -e "$2" ]; then
+    cp "$1" "$2"
+    chmod 600 "$2"
+    echo "created: $2 — fill in your name / slack display name"
+  fi
+}
+seed "$DOTFILES/config/claude/CLAUDE.local.md.example" "$HOME/.claude/CLAUDE.local.md"
 echo "claude: ok"
